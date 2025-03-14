@@ -1,8 +1,3 @@
-"""
-Sort Olympics - Collection of sorting algorithms
-
-"""
-
 import random
 
 #=============Fundamental Sorting Algorithms=============
@@ -599,19 +594,17 @@ def radix_sort_lsd(arr):
     if not arr: return []
     max_val = max(arr)
     if max_val == 0: return arr
-    data = arr.copy()
     exp = 1
     while max_val // exp > 0:
-        output = [0] * len(data)
+        output = [0] * len(arr)
         count = [0] * 10
-        for i in range(len(data)): count[(data[i] // exp) % 10] += 1
+        for i in range(len(arr)): count[(arr[i] // exp) % 10] += 1
         for i in range(1, 10): count[i] += count[i - 1]
-        for i in range(len(data) - 1, -1, -1):
-            digit = (data[i] // exp) % 10
-            output[count[digit] - 1], count[digit] = data[i], count[digit] - 1
-        data = output.copy()
+        for i in range(len(arr) - 1, -1, -1):
+            digit = (arr[i] // exp) % 10
+            output[count[digit] - 1], count[digit] = arr[i], count[digit] - 1
+        for i in range(len(arr)): arr[i] = output[i]
         exp *= 10
-    for i in range(len(arr)): arr[i] = data[i]
     return arr
 
 def radix_sort_msd(arr):
@@ -619,10 +612,13 @@ def radix_sort_msd(arr):
     if not arr: return []
     min_val = min(arr)
     offset = abs(min_val) if min_val < 0 else 0
-    data = [x + offset for x in arr.copy()]
-    max_val = max(data)
+    if offset > 0:
+        for i in range(len(arr)): arr[i] += offset
+    
+    max_val = max(arr)
     if max_val == 0:
-        for i in range(len(arr)): arr[i] = data[i] - offset
+        if offset > 0:
+            for i in range(len(arr)): arr[i] -= offset
         return arr
     num_digits = len(str(max_val))
     
@@ -645,8 +641,10 @@ def radix_sort_msd(arr):
                 if bucket_end > bucket_start and digit_pos > 0:
                     queue.append((bucket_start, bucket_end, digit_pos - 1))
     
-    iterative_msd_sort(data)
-    for i in range(len(arr)): arr[i] = data[i] - offset
+    iterative_msd_sort(arr)
+    
+    if offset > 0:
+        for i in range(len(arr)): arr[i] -= offset
     return arr
 
 def pigeonhole_sort(arr):
@@ -687,7 +685,7 @@ def spreadsort(arr):
         # distribute elements to buckets
         for x in arr: buckets[((x - min_val) >> shift) & mask].append(x)
         
-        # sort each bucket and combine results
+        # sort each bucket and combine results directly
         idx = 0
         for bucket in buckets:
             if len(bucket) <= 32:
@@ -696,7 +694,7 @@ def spreadsort(arr):
                     key, j = bucket[i], i - 1
                     while j >= 0 and bucket[j] > key: bucket[j + 1], j = bucket[j], j - 1
                     bucket[j + 1] = key
-            else: spreadsort(bucket)
+            else: spreadsort(bucket)  # recursive sort
             for x in bucket: arr[idx], idx = x, idx + 1
     
     return arr
@@ -1001,32 +999,33 @@ def i_cant_believe_it_can_sort(arr):
     return arr
 
 def bogosort(arr):
-    """Randomly shuffles until sorted. Might finish before the heat death of the universe, but probably not."""
-    result = arr.copy()
-    
+    """Randomly shuffles until sorted. Visualized by performing shuffle steps directly on arr. Falls back to insertion sort after max iterations if needed."""
     def is_sorted(a):
         for i in range(len(a) - 1):
-            if a[i] > a[i + 1]: return False
+            if a[i] > a[i + 1]:
+                return False
         return True
-    
-    max_iterations = min(100, len(result) ** 2)
+
+    max_iterations = min(100, len(arr) ** 2)
     iterations = 0
-    
-    while not is_sorted(result) and iterations < max_iterations:
-        for i in range(len(result) - 1, 0, -1):
+
+    while not is_sorted(arr) and iterations < max_iterations:
+        # perform in-place shuffle using direct assignments (each swap is visualized)
+        for i in range(len(arr) - 1, 0, -1):
             j = random.randint(0, i)
-            result[i], result[j] = result[j], result[i]
+            arr[i], arr[j] = arr[j], arr[i]
         iterations += 1
-    
-    if iterations >= max_iterations:
-        for i in range(1, len(result)):
-            key, j = result[i], i - 1
-            while j >= 0 and result[j] > key:
-                result[j + 1], j = result[j], j - 1
-            result[j + 1] = key
-    
-    for i in range(len(arr)): arr[i] = result[i]
-    
+
+    if not is_sorted(arr):
+        # fallback to insertion sort if bogosort didn't complete in time
+        for i in range(1, len(arr)):
+            key = arr[i]
+            j = i - 1
+            while j >= 0 and arr[j] > key:
+                arr[j + 1] = arr[j]
+                j -= 1
+            arr[j + 1] = key
+
     return arr
 
 def spaghetti_sort(arr):
@@ -1207,9 +1206,6 @@ def thorup_sort(arr):
     if not arr:
         return []
     
-    # For demonstration, we'll use a linear-time sorting method
-    # for integers in a bounded range, similar to Thorup's approach
-    
     # find the range
     min_val = min(arr)
     max_val = max(arr)
@@ -1217,12 +1213,12 @@ def thorup_sort(arr):
     # handle negative values by shifting
     if min_val < 0:
         offset = abs(min_val)
-        # create shifted copy
-        temp = [x + offset for x in arr]
+        # modify in place instead of creating a copy
+        for i in range(len(arr)):
+            arr[i] += offset
         max_val += offset
     else:
         offset = 0
-        temp = arr.copy()
     
     # if range is small enough, use counting sort
     if max_val <= 10000:  # arbitrary threshold
@@ -1230,14 +1226,14 @@ def thorup_sort(arr):
         count = [0] * (max_val + 1)
         
         # count occurrences
-        for x in temp:
+        for x in arr:
             count[x] += 1
         
         # reconstruct array
         idx = 0
         for i in range(max_val + 1):
             for _ in range(count[i]):
-                temp[idx] = i
+                arr[idx] = i
                 idx += 1
     else:
         # for larger ranges, use a recursive bit-based approach
@@ -1260,7 +1256,7 @@ def thorup_sort(arr):
             buckets = [[] for _ in range(1 << bits_per_group)]
             
             # distribute elements to buckets
-            for x in temp:
+            for x in arr:
                 bucket_idx = (x & mask) >> start_bit
                 buckets[bucket_idx].append(x)
             
@@ -1268,15 +1264,12 @@ def thorup_sort(arr):
             idx = 0
             for bucket in buckets:
                 for x in bucket:
-                    temp[idx] = x
+                    arr[idx] = x
                     idx += 1
     
     # restore original range if needed
     if offset > 0:
         for i in range(len(arr)):
-            arr[i] = temp[i] - offset
-    else:
-        for i in range(len(arr)):
-            arr[i] = temp[i]
+            arr[i] -= offset
     
     return arr

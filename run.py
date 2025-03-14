@@ -4,11 +4,12 @@ from prettytable import PrettyTable
 import algorithms
 import benchmark  # import the benchmark module
 
-MAX_BENCHMARK_TIME = int(os.environ.get('TIMEOUT', 5))
+TIMEOUT = int(os.environ.get('TIMEOUT', 5))
 TOURNAMENT_SIZE = int(os.environ.get('SIZE', 2000))
 TEST_DATA_TYPE = os.environ.get('DATA_TYPE', 'random')
 TEST_RANGE = int(os.environ.get('TEST_RANGE', 1000))
-VISUALIZATION = os.environ.get('VIZ', '0') == '1'
+VIZ = os.environ.get('VIZ', '0') == '1'
+BENCH = os.environ.get('BENCH', '0') == '1'
 
 FUNDAMENTAL_ALGOS = ['bubble_sort', 'selection_sort', 'insertion_sort', 'merge_sort', 'quick_sort', 'heap_sort']
 ADVANCED_ALGOS = ['shell_sort', 'tim_sort', 'intro_sort', 'library_sort', 'block_sort', 'smooth_sort']
@@ -55,8 +56,8 @@ def generate_test_data(size, data_type):
 def benchmark_algorithm(sort_func, data, name):
     # reuse the function from benchmark.py
     # set the global timeout first
-    benchmark.MAX_BENCHMARK_TIME = MAX_BENCHMARK_TIME
-    return benchmark.benchmark_algorithm(sort_func, data, name)
+    benchmark.TIMEOUT = TIMEOUT
+    return benchmark.benchmark_single(name, sort_func, data, TIMEOUT)
 
 def run_tournament(algorithms):
     print("\n" + "=" * 50)
@@ -143,22 +144,22 @@ def run_match(algo1, algo2):
         result1 = benchmark_algorithm(algo1[1], data, algo1[0])
     except (RecursionError, Exception) as e:
         print(f"  Warning: {algo1[0]} failed with error: {type(e).__name__}")
-        result1 = {"timeout": True, "time": float('inf'), "memory": 0, "result": None}
+        result1 = {"success": False, "time": float('inf'), "memory": 0, "result": None, "error": str(e)}
     
     # safely benchmark algorithm 2
     try:
         result2 = benchmark_algorithm(algo2[1], data, algo2[0])
     except (RecursionError, Exception) as e:
         print(f"  Warning: {algo2[0]} failed with error: {type(e).__name__}")
-        result2 = {"timeout": True, "time": float('inf'), "memory": 0, "result": None}
+        result2 = {"success": False, "time": float('inf'), "memory": 0, "result": None, "error": str(e)}
     
-    if result1["timeout"] and result2["timeout"]:
+    if not result1["success"] and not result2["success"]:
         winner, loser = algo2, algo1
         winner_time = loser_time = float('inf')
-    elif result1["timeout"]:
+    elif not result1["success"]:
         winner, loser = algo2, algo1
         winner_time, loser_time = result2["time"], float('inf')
-    elif result2["timeout"]:
+    elif not result2["success"]:
         winner, loser = algo1, algo2
         winner_time, loser_time = result1["time"], float('inf')
     elif result1["time"] <= result2["time"]:
@@ -515,6 +516,10 @@ def verify_sorting(algorithms):
             
             try:
                 result = func(test_copy)
+                # if result is None, the algorithm likely modified test_copy in-place
+                if result is None:
+                    result = test_copy
+                    
                 if result != expected:
                     print(f"\n❌ {name} failed on {test_description} input:")
                     print(f"   Input: {test_case[:10]}{'...' if len(test_case) > 10 else ''}")
@@ -535,12 +540,12 @@ def verify_sorting(algorithms):
 
 def print_config():
     print("\nCONFIGURATION:")
-    print(f"  Timeout: {MAX_BENCHMARK_TIME}s")
+    print(f"  Timeout: {TIMEOUT}s")
     print(f"  Tournament size: {TOURNAMENT_SIZE} elements")
     print(f"  Data type: {TEST_DATA_TYPE}")
     if TEST_DATA_TYPE == 'random':
         print(f"  Value range: 0 to {TEST_RANGE}")
-    print(f"  Visualization: {'Enabled' if VISUALIZATION else 'Disabled'}")
+    print(f"  Visualization: {'Enabled' if VIZ else 'Disabled'}")
     if os.environ.get('SKIP_VERIFY', '').lower() == 'true':
         print("  Verification: Skipped")
 
@@ -565,31 +570,30 @@ def main():
     champion, tournament_results, all_rounds, final_match = run_tournament(sorting_algorithms)
     print_tournament_results(champion, tournament_results, all_rounds, final_match)
     
-    if VISUALIZATION:
+    if BENCH:
         print("\n" + "=" * 50)
-        print("COMPLEXITY ANALYSIS")
+        print("BENCHMARK RESULTS")
         print("=" * 50)
-        
-        # Use the original unmodified algorithm list for benchmarking
-        print(f"\nBenchmarking all {all_algorithm_count} algorithms...\n")
-        
-        # Use benchmark.py module for complexity analysis
-        benchmark.MAX_BENCHMARK_TIME = MAX_BENCHMARK_TIME
+        benchmark.TIMEOUT = TIMEOUT
         benchmark_results, sizes = benchmark.benchmark_for_complexity(
             all_algorithms, 
-            None,  # use default sizes
+            None, 
             TEST_DATA_TYPE, 
             TEST_RANGE
         )
-        
-        # include all algorithms with at least 1 data point
         valid_results = {name: points for name, points in benchmark_results.items() if len(points) >= 1}
-        
         if valid_results:
-            print(f"Visualizing {len(valid_results)}/{all_algorithm_count} algorithms")
-            benchmark.plot_complexity(valid_results, sizes)
+            for algo, points in valid_results.items():
+                print(f"{algo}: {points}")
         else:
-            print("Not enough data points to plot complexity analysis.")
+            print("Not enough data points to display benchmark results.")
+    elif VIZ:
+        print("\n" + "=" * 50)
+        print("VISUALISE COMPLEXITY")
+        print("=" * 50)
+        print(f"\nVisualising all {all_algorithm_count} algorithms...\n")
+        import visualizer
+        visualizer.main("all")
     
     print()
 

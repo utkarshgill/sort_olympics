@@ -14,143 +14,13 @@ import multiprocessing as mp
 from concurrent.futures import ProcessPoolExecutor, as_completed
 import argparse
 
-# viz flag
-VISUALIZATION = os.environ.get('VIZ', '0') == '1'
-PLOT = os.environ.get('PLOT', '0') == '1'
-
-if VISUALIZATION:
-    try:
-        import pygame
-        pygame.init()
-        try:
-            SWAP_SOUND = pygame.mixer.Sound("sounds/swap.wav")
-            COMPARE_SOUND = pygame.mixer.Sound("sounds/compare.wav")
-            WIN_SOUND = pygame.mixer.Sound("sounds/win.wav")
-            LOSE_SOUND = pygame.mixer.Sound("sounds/lose.wav")
-        except:
-            print("warning: sound files not found. using defaults.")
-            SWAP_SOUND = pygame.mixer.Sound(buffer=bytes([i for i in range(255)] * 32))
-            COMPARE_SOUND = pygame.mixer.Sound(buffer=bytes([255 - i for i in range(255)] * 32))
-            WIN_SOUND = pygame.mixer.Sound(buffer=bytes([(i * 2) % 255 for i in range(255)] * 32))
-            LOSE_SOUND = pygame.mixer.Sound(buffer=bytes([(i * 3) % 255 for i in range(255)] * 32))
-    except ImportError:
-        print("warning: pygame not found. disabling viz.")
-        VISUALIZATION = False
-
 # default settings
-MAX_TIME = int(os.environ.get('TIMEOUT', 5))
-BASE_TIMEOUT = MAX_TIME  # base timeout
-TIMEOUT_SCALING = float(os.environ.get('TIMEOUT_SCALING', 1.25))
+TIMEOUT = int(os.environ.get('TIMEOUT', 5))
 MAX_SIZE = int(os.environ.get('MAX_SIZE', 20000))
-SIZE_INCREMENT = int(os.environ.get('SIZE_INC', 2000))
+SIZE_INCREMENT = int(os.environ.get('SIZE_INC', 5000))
 DATA_TYPE = os.environ.get('DATA_TYPE', 'random')
 TEST_RANGE = int(os.environ.get('TEST_RANGE', 1000))
 NUM_PROCESSES = max(1, mp.cpu_count() - 1)
-
-if VISUALIZATION:
-    VIZ_WIDTH = 1200
-    VIZ_HEIGHT = 800
-    VIZ_PADDING = 50
-    VIZ_BAR_WIDTH = 2
-    VIZ_BAR_SPACING = 1
-    VIZ_COLORS = {
-        "background": (30, 30, 40),
-        "array": (200, 200, 220),
-        "comparing": (255, 200, 0),
-        "swapping": (255, 100, 0),
-        "sorted": (0, 255, 100),
-        "title": (255, 255, 255),
-        "stats": (180, 180, 200)
-    }
-    VIZ_FONT = None
-    VIZ_TITLE_SIZE = 32
-    VIZ_TEXT_SIZE = 24
-    VIZ_DELAY = 1  # ms delay for viz
-    if pygame.font:
-        pygame.font.init()
-        VIZ_FONT = pygame.font.SysFont("monospace", VIZ_TEXT_SIZE)
-        VIZ_TITLE_FONT = pygame.font.SysFont("monospace", VIZ_TITLE_SIZE)
-
-    class SortingVisualizer:
-        def __init__(self, data, name):
-            self.data = data.copy()
-            self.name = name
-            self.size = len(data)
-            self.max_val = max(data)
-            self.swaps = 0
-            self.comparisons = 0
-            self.done = False
-            self.screen = pygame.display.set_mode((VIZ_WIDTH, VIZ_HEIGHT))
-            pygame.display.set_caption(f"Sort Olympics: {self.name}")
-            self.clock = pygame.time.Clock()
-            self.bar_width = max(1, min(VIZ_BAR_WIDTH, (VIZ_WIDTH - 2 * VIZ_PADDING) // self.size - VIZ_BAR_SPACING))
-            self.comparing = []
-            self.swapping = []
-        
-        def draw(self):
-            self.screen.fill(VIZ_COLORS["background"])
-            if VIZ_FONT:
-                title = VIZ_TITLE_FONT.render(self.name, 1, VIZ_COLORS["title"])
-                self.screen.blit(title, (VIZ_WIDTH//2 - title.get_width()//2, 10))
-                stats = VIZ_FONT.render(
-                    f"Size: {self.size}  Comparisons: {self.comparisons}  Swaps: {self.swaps}", 
-                    1, VIZ_COLORS["stats"]
-                )
-                self.screen.blit(stats, (VIZ_WIDTH//2 - stats.get_width()//2, VIZ_HEIGHT - 40))
-            for i, val in enumerate(self.data):
-                color = VIZ_COLORS["array"]
-                if i in self.comparing:
-                    color = VIZ_COLORS["comparing"]
-                if i in self.swapping:
-                    color = VIZ_COLORS["swapping"]
-                if self.done:
-                    color = VIZ_COLORS["sorted"]
-                bar_height = int((val / self.max_val) * (VIZ_HEIGHT - 2 * VIZ_PADDING - 50))
-                x = VIZ_PADDING + i * (self.bar_width + VIZ_BAR_SPACING)
-                y = VIZ_HEIGHT - VIZ_PADDING - bar_height
-                pygame.draw.rect(self.screen, color, (x, y, self.bar_width, bar_height))
-            pygame.display.flip()
-            self.clock.tick(60)
-        
-        def compare(self, i, j):
-            self.comparisons += 1
-            self.comparing = [i, j]
-            self.draw()
-            if COMPARE_SOUND:
-                COMPARE_SOUND.play()
-            pygame.time.delay(VIZ_DELAY)
-            return self.data[i] <= self.data[j]
-        
-        def swap(self, i, j):
-            self.swaps += 1
-            self.swapping = [i, j]
-            self.data[i], self.data[j] = self.data[j], self.data[i]
-            self.draw()
-            if SWAP_SOUND:
-                SWAP_SOUND.play()
-            pygame.time.delay(VIZ_DELAY)
-        
-        def set(self, i, val):
-            self.data[i] = val
-            self.swapping = [i]
-            self.draw()
-            pygame.time.delay(VIZ_DELAY)
-        
-        def finish(self, success=True):
-            self.done = True
-            self.comparing = []
-            self.swapping = []
-            self.draw()
-            if success:
-                if WIN_SOUND:
-                    WIN_SOUND.play()
-            else:
-                if LOSE_SOUND:
-                    LOSE_SOUND.play()
-            pygame.time.delay(500)
-        
-        def close(self):
-            pygame.display.quit()
 
 def generate_test_data(size, dt, rmax=1000):
     if dt == 'sorted':
@@ -180,7 +50,10 @@ def benchmark_single(func_name, func, data, max_time):
         tracemalloc.stop()
         signal.alarm(0)
         expected = sorted(data)
-        is_correct = result == expected if result is not None else False
+        # if result is None, the algorithm likely modified data_copy in-place
+        if result is None:
+            result = data_copy
+        is_correct = result == expected
         return {
             "name": func_name, 
             "time": elapsed, 
@@ -211,11 +84,10 @@ def worker_init():
 def run_benchmark_task(name, func, data, scaled_timeout, size):
     return size, benchmark_single(name, func, data, scaled_timeout)
 
-def benchmark_for_complexity(algos, sizes=None, dt=None, tr=None, max_time=None, timeout_scaling=None, size_increment=None):
+def benchmark_for_complexity(algos, sizes=None, dt=None, tr=None, max_time=None, size_increment=None):
     dt = dt or DATA_TYPE
     tr = tr or TEST_RANGE
-    max_time = max_time or MAX_TIME
-    timeout_scaling = timeout_scaling or TIMEOUT_SCALING
+    max_time = max_time or TIMEOUT
     size_increment = size_increment or SIZE_INCREMENT
     if sizes is None:
         sizes = [100, 200, 500]
@@ -230,9 +102,7 @@ def benchmark_for_complexity(algos, sizes=None, dt=None, tr=None, max_time=None,
     print("Generating test data...")
     test_data = {size: generate_test_data(size, dt, tr) for size in sizes}
     print(f"[{completed_algos}/{total_algos}]", end="", flush=True)
-    base_size = sizes[0]
-    # precompute timeouts: timeout ∝ (size/base)^(1/timeout_scaling)
-    scaled_timeouts = {size: max(max_time, int(max_time * ((size/base_size)**(1/timeout_scaling)))) for size in sizes}
+    scaled_timeouts = {size: max_time for size in sizes}
     with ProcessPoolExecutor(max_workers=NUM_PROCESSES, initializer=worker_init) as executor:
         for name, func, algo_type in algos:
             print(f"\r[{completed_algos}/{total_algos}] {name}", end="", flush=True)
@@ -429,42 +299,35 @@ def verify_sorting(algos):
 def run_benchmark(module_name=None, sizes=None, output_file=None, size_increment=None):
     algorithms = discover_algorithms(module_name)
     if not algorithms:
-        print("No algorithms found. Exiting.")
+        print("no algorithms found. exiting.")
         return
     verified_algorithms = verify_sorting(algorithms)
     if not verified_algorithms:
-        print("No algorithms passed verification. Exiting.")
+        print("no algorithms passed verification. exiting.")
         return
     print("\n" + "=" * 50)
-    print("COMPLEXITY ANALYSIS")
+    print("complexity analysis")
     print("=" * 50)
-    print(f"\nBenchmarking {len(verified_algorithms)} algorithms...\n")
+    print(f"\nbenchmarking {len(verified_algorithms)} algorithms...\n")
     benchmark_results, sizes = benchmark_for_complexity(verified_algorithms, sizes, size_increment=size_increment)
-    valid_results = {name: points for name, points in benchmark_results.items() if points}
-    if valid_results:
-        print(f"Visualizing {len(valid_results)}/{len(verified_algorithms)} algorithms")
-        success = plot_complexity(valid_results, sizes)
-        if success and output_file:
-            plt.savefig(output_file, bbox_inches='tight', dpi=300)
-            print(f"Plot saved to {output_file}")
-            plt.show()
-    else:
-        print("Not enough data points to plot complexity analysis.")
+    print("visualizing results")
+    success = plot_complexity(benchmark_results, sizes)
+    if output_file:
+         plt.savefig(output_file, bbox_inches='tight', dpi=300)
+         print(f"plot saved to {output_file}")
+    plt.show()
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Benchmark sorting algorithms and visualize their complexity.')
     parser.add_argument('-m', '--module', help='Module containing sorting algorithms (default: algorithms)')
     parser.add_argument('-s', '--sizes', type=int, nargs='+', help='Input sizes to benchmark (default: exponential sequence)')
     parser.add_argument('-o', '--output', help='Output file name for the plot (default: complexity_analysis.png)')
-    parser.add_argument('-t', '--timeout', type=int, help=f'Maximum time in seconds for each algorithm run (default: {MAX_TIME})')
-    parser.add_argument('--timeout-scaling', type=float, help=f'Scaling factor for timeout growth (default: {TIMEOUT_SCALING})')
+    parser.add_argument('-t', '--timeout', type=int, help=f'Maximum time in seconds for each algorithm run (default: {TIMEOUT})')
     parser.add_argument('--max-size', type=int, help=f'Maximum input size to benchmark (default: {MAX_SIZE})')
     parser.add_argument('--size-increment', type=int, help=f'Increment between sizes (default: {SIZE_INCREMENT})')
     args = parser.parse_args()
     if args.timeout:
-        MAX_TIME = args.timeout
-    if args.timeout_scaling:
-        TIMEOUT_SCALING = args.timeout_scaling
+        TIMEOUT = args.timeout
     if args.max_size:
         MAX_SIZE = args.max_size
     size_increment = args.size_increment
