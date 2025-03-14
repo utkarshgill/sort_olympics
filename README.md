@@ -3,7 +3,7 @@ yet another sorting toolkit. because the world needed more sorting analysis.
 
 ## algorithms
 
-### fundamental
+### basic
 - [x] bubble_sort
 - [x] selection_sort
 - [x] insertion_sort
