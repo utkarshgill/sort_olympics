@@ -89,6 +89,7 @@ def heap_sort(arr):
     return arr
 
 #=============Practical & Optimized Comparison Sorts=============
+
 def shell_sort(arr):
     """insertion sort with gaps, somehow still relevant after 60 years"""
     n, gap = len(arr), 1
