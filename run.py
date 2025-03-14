@@ -592,8 +592,8 @@ def main():
         print("VISUALISE COMPLEXITY")
         print("=" * 50)
         print(f"\nVisualising all {all_algorithm_count} algorithms...\n")
-        import visualizer
-        visualizer.main("all")
+        import visualize
+        visualize.main("all")
     
     print()
 
