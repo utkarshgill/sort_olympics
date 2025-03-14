@@ -1,7 +1,65 @@
 # sorting olympics
-
 yet another sorting toolkit. because the world needed more sorting analysis.
 
+### fundamental algorithms
+- [ ] bubble_sort
+- [ ] selection_sort
+- [ ] insertion_sort
+- [ ] merge_sort
+- [ ] quick_sort
+- [ ] heap_sort
+
+### advanced algorithms
+- [ ] shell_sort
+- [ ] tim_sort
+- [ ] intro_sort
+- [ ] library_sort
+- [ ] block_sort
+- [ ] smooth_sort
+
+### specialized algorithms
+- [ ] tree_sort
+- [ ] tournament_sort
+- [ ] patience_sort
+- [ ] cube_sort
+- [ ] comb_sort
+- [ ] cocktail_sort
+- [ ] gnome_sort
+- [ ] odd_even_sort
+- [ ] pancake_sort
+- [ ] strand_sort
+- [ ] exchange_sort
+- [ ] cycle_sort
+- [ ] recombinant_sort
+- [ ] inplace_merge_sort
+
+### linear-time algorithms
+- [ ] counting_sort
+- [ ] bucket_sort_uniform
+- [ ] bucket_sort_integer
+- [ ] radix_sort_lsd
+- [ ] radix_sort_msd
+- [ ] pigeonhole_sort
+
+### noncomparison algorithms
+- [ ] spreadsort
+- [ ] burstsort
+- [ ] flashsort
+- [ ] postman_sort
+- [ ] msd_radix_sort_inplace
+
+### theoretical algorithms
+- [ ] bead_sort
+- [ ] merge_insertion_sort
+- [ ] i_cant_believe_it_can_sort
+- [ ] spaghetti_sort
+- [ ] sorting_network
+- [ ] bitonic_sort
+- [ ] bogosort
+- [ ] stooge_sort
+- [ ] slowsort
+- [ ] franceschini_mergesort
+- [ ] thorup_sort
 
 ### benchmark.py
 measures how painfully slow your sorting algorithm really is.
@@ -371,4 +429,3 @@ SUMMARY
 |         Bead Sort          |  Theoretical  |  0   |   1    |   0.050067   |
 |          Slowsort          |  Theoretical  |  0   |   1    |   0.191085   |
 +----------------------------+---------------+------+--------+--------------+
-```
