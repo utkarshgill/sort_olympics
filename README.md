@@ -1,66 +1,69 @@
 # sorting olympics
 yet another sorting toolkit. because the world needed more sorting analysis.
 
-### fundamental algorithms
-- [ ] bubble_sort
-- [ ] selection_sort
-- [ ] insertion_sort
-- [ ] merge_sort
-- [ ] quick_sort
-- [ ] heap_sort
+## algorithms
 
-### advanced algorithms
-- [ ] shell_sort
-- [ ] tim_sort
-- [ ] intro_sort
-- [ ] library_sort
-- [ ] block_sort
-- [ ] smooth_sort
+### fundamental
+- [x] bubble_sort
+- [x] selection_sort
+- [x] insertion_sort
+- [x] merge_sort
+- [x] quick_sort
+- [x] heap_sort
 
-### specialized algorithms
-- [ ] tree_sort
-- [ ] tournament_sort
-- [ ] patience_sort
-- [ ] cube_sort
-- [ ] comb_sort
-- [ ] cocktail_sort
-- [ ] gnome_sort
-- [ ] odd_even_sort
-- [ ] pancake_sort
-- [ ] strand_sort
-- [ ] exchange_sort
-- [ ] cycle_sort
-- [ ] recombinant_sort
-- [ ] inplace_merge_sort
+### advanced
+- [x] shell_sort
+- [x] tim_sort
+- [x] intro_sort
+- [x] library_sort
+- [x] block_sort
+- [x] smooth_sort
 
-### linear-time algorithms
-- [ ] counting_sort
-- [ ] bucket_sort_uniform
-- [ ] bucket_sort_integer
-- [ ] radix_sort_lsd
-- [ ] radix_sort_msd
-- [ ] pigeonhole_sort
+### specialized
+- [x] tree_sort
+- [x] tournament_sort
+- [x] patience_sort
+- [x] cube_sort
+- [x] comb_sort
+- [x] cocktail_sort
+- [x] gnome_sort
+- [x] odd_even_sort
+- [x] pancake_sort
+- [x] strand_sort
+- [x] exchange_sort
+- [x] cycle_sort
+- [x] recombinant_sort
+- [x] inplace_merge_sort
 
-### noncomparison algorithms
-- [ ] spreadsort
-- [ ] burstsort
-- [ ] flashsort
-- [ ] postman_sort
-- [ ] msd_radix_sort_inplace
+### linear-time
+- [x] counting_sort
+- [x] bucket_sort_uniform
+- [x] bucket_sort_integer
+- [x] radix_sort_lsd
+- [x] radix_sort_msd
+- [x] pigeonhole_sort
 
-### theoretical algorithms
-- [ ] bead_sort
-- [ ] merge_insertion_sort
-- [ ] i_cant_believe_it_can_sort
-- [ ] spaghetti_sort
-- [ ] sorting_network
-- [ ] bitonic_sort
-- [ ] bogosort
-- [ ] stooge_sort
-- [ ] slowsort
-- [ ] franceschini_mergesort
-- [ ] thorup_sort
+### noncomparison
+- [x] spreadsort
+- [x] burstsort
+- [x] flashsort
+- [x] postman_sort
+- [x] msd_radix_sort_inplace
 
+### theoretical
+- [x] bead_sort
+- [x] merge_insertion_sort
+- [x] i_cant_believe_it_can_sort
+- [x] spaghetti_sort
+- [x] sorting_network
+- [x] bitonic_sort
+- [x] bogosort
+- [x] stooge_sort
+- [x] slowsort
+- [x] franceschini_mergesort
+- [x] thorup_sort
+
+## tools
 ### benchmark.py
 measures how painfully slow your sorting algorithm really is.
 ```bash
