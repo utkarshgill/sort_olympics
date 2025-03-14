@@ -3,61 +3,18 @@ import time, random, signal, inspect, tracemalloc, os, math
 from prettytable import PrettyTable
 import algorithms
 import benchmark  # import the benchmark module
+from utils import (
+    TIMEOUT, TOURNAMENT_SIZE, DATA_TYPE, TEST_RANGE, VIZ, BENCH,
+    generate_test_data, discover_sorting_algorithms, verify_sorting, benchmark_single, print_algorithm_stats
+)
 
-TIMEOUT = int(os.environ.get('TIMEOUT', 5))
-TOURNAMENT_SIZE = int(os.environ.get('SIZE', 2000))
-TEST_DATA_TYPE = os.environ.get('DATA_TYPE', 'random')
-TEST_RANGE = int(os.environ.get('TEST_RANGE', 1000))
-VIZ = os.environ.get('VIZ', '0') == '1'
-BENCH = os.environ.get('BENCH', '0') == '1'
-
-FUNDAMENTAL_ALGOS = ['bubble_sort', 'selection_sort', 'insertion_sort', 'merge_sort', 'quick_sort', 'heap_sort']
-ADVANCED_ALGOS = ['shell_sort', 'tim_sort', 'intro_sort', 'library_sort', 'block_sort', 'smooth_sort']
-SPECIALIZED_ALGOS = ['tree_sort', 'tournament_sort', 'patience_sort', 'cube_sort', 'comb_sort', 'cocktail_sort',
-                   'gnome_sort', 'odd_even_sort', 'pancake_sort', 'strand_sort', 'exchange_sort', 'cycle_sort',
-                   'recombinant_sort', 'inplace_merge_sort']
-LINEAR_TIME_ALGOS = ['counting_sort', 'bucket_sort_uniform', 'bucket_sort_integer', 'radix_sort_lsd', 'radix_sort_msd', 'pigeonhole_sort']
-NONCOMPARISON_ALGOS = ['spreadsort', 'burstsort', 'flashsort', 'postman_sort', 'msd_radix_sort_inplace']
-THEORETICAL_ALGOS = ['bead_sort', 'merge_insertion_sort', 'i_cant_believe_it_can_sort', 'spaghetti_sort', 
-                     'sorting_network', 'bitonic_sort', 'bogosort', 'stooge_sort', 'slowsort', 
-                     'franceschini_mergesort', 'thorup_sort']
-
-def discover_sorting_algorithms():
-    sorting_algos = []
-    for name, func in inspect.getmembers(algorithms, inspect.isfunction):
-        display_name = ' '.join(word.capitalize() for word in name.split('_'))
-        if name in FUNDAMENTAL_ALGOS:
-            sorting_algos.append((display_name, func, "fundamental"))
-        elif name in ADVANCED_ALGOS:
-            sorting_algos.append((display_name, func, "advanced"))
-        elif name in SPECIALIZED_ALGOS:
-            sorting_algos.append((display_name, func, "specialized"))
-        elif name in LINEAR_TIME_ALGOS:
-            sorting_algos.append((display_name, func, "linear"))
-        elif name in NONCOMPARISON_ALGOS:
-            sorting_algos.append((display_name, func, "noncomparison"))
-        elif name in THEORETICAL_ALGOS:
-            sorting_algos.append((display_name, func, "theoretical"))
-    
-    print("\nALGORITHMS:")
-    print(f"  Fundamental: {sum(1 for _, _, cat in sorting_algos if cat == 'fundamental')}")
-    print(f"  Advanced: {sum(1 for _, _, cat in sorting_algos if cat == 'advanced')}")
-    print(f"  Specialized: {sum(1 for _, _, cat in sorting_algos if cat == 'specialized')}")
-    print(f"  Linear-time: {sum(1 for _, _, cat in sorting_algos if cat == 'linear')}")
-    print(f"  Noncomparison: {sum(1 for _, _, cat in sorting_algos if cat == 'noncomparison')}")
-    print(f"  Theoretical: {sum(1 for _, _, cat in sorting_algos if cat == 'theoretical')}")
-    print(f"  Total: {len(sorting_algos)}")
-    return sorting_algos
-
-def generate_test_data(size, data_type):
-    # reuse the function from benchmark.py
-    return benchmark.generate_test_data(size, data_type, TEST_RANGE)
+def get_test_data(size, data_type):
+    # wrapper around the function from utils.py
+    return generate_test_data(size, data_type, TEST_RANGE)
 
 def benchmark_algorithm(sort_func, data, name):
-    # reuse the function from benchmark.py
-    # set the global timeout first
-    benchmark.TIMEOUT = TIMEOUT
-    return benchmark.benchmark_single(name, sort_func, data, TIMEOUT)
+    # reuse the function from utils.py
+    return benchmark_single(name, sort_func, data, TIMEOUT)
 
 def run_tournament(algorithms):
     print("\n" + "=" * 50)
@@ -137,7 +94,7 @@ def run_tournament(algorithms):
     return champion, tournament_results, all_rounds, final_match
 
 def run_match(algo1, algo2):
-    data = generate_test_data(TOURNAMENT_SIZE, TEST_DATA_TYPE)
+    data = get_test_data(TOURNAMENT_SIZE, DATA_TYPE)
     
     # safely benchmark algorithm 1
     try:
@@ -488,62 +445,12 @@ def print_tournament_results(champion, tournament_results, all_rounds, final_mat
     
     print(table)
 
-def verify_sorting(algorithms):
-    # reuse the function from benchmark.py but ensure we keep the categorization
-    print("\nVERIFYING ALGORITHMS...", end=" ")
-    
-    test_cases = [
-        [5, 4, 3, 2, 1],
-        [3, 1, 4, 1, 5, 9, 2, 6],
-        [random.randint(0, 100) for _ in range(50)]
-    ]
-    
-    all_passed = True
-    total_algos = 0
-    passed_algos = 0
-    
-    for name, func, _ in algorithms:
-        if name == "BYE" or func is None:
-            continue
-            
-        total_algos += 1
-        algo_passed = True
-        
-        for i, test_case in enumerate(test_cases):
-            test_description = ["reversed", "pattern with duplicates", "random"][i]
-            expected = sorted(test_case)
-            test_copy = test_case.copy()
-            
-            try:
-                result = func(test_copy)
-                # if result is None, the algorithm likely modified test_copy in-place
-                if result is None:
-                    result = test_copy
-                    
-                if result != expected:
-                    print(f"\n❌ {name} failed on {test_description} input:")
-                    print(f"   Input: {test_case[:10]}{'...' if len(test_case) > 10 else ''}")
-                    print(f"   Expected: {expected[:10]}{'...' if len(expected) > 10 else ''}")
-                    print(f"   Got: {result[:10]}{'...' if len(result) > 10 else ''}")
-                    all_passed = False
-                    algo_passed = False
-            except Exception as e:
-                print(f"\n❌ {name} threw an exception on {test_description} input: {str(e)}")
-                all_passed = False
-                algo_passed = False
-        
-        if algo_passed:
-            passed_algos += 1
-    
-    print(f"✅ {passed_algos}/{total_algos}")
-    return all_passed
-
 def print_config():
     print("\nCONFIGURATION:")
     print(f"  Timeout: {TIMEOUT}s")
     print(f"  Tournament size: {TOURNAMENT_SIZE} elements")
-    print(f"  Data type: {TEST_DATA_TYPE}")
-    if TEST_DATA_TYPE == 'random':
+    print(f"  Data type: {DATA_TYPE}")
+    if DATA_TYPE == 'random':
         print(f"  Value range: 0 to {TEST_RANGE}")
     print(f"  Visualization: {'Enabled' if VIZ else 'Disabled'}")
     if os.environ.get('SKIP_VERIFY', '').lower() == 'true':
@@ -559,8 +466,12 @@ def main():
     sorting_algorithms = discover_sorting_algorithms()
     all_algorithm_count = len(sorting_algorithms)
     
+    # Print statistics about the algorithms
+    print_algorithm_stats(sorting_algorithms)
+    
     # Verify the algorithms work correctly
-    if not verify_sorting(sorting_algorithms):
+    all_passed, valid_algorithms = verify_sorting(sorting_algorithms)
+    if not all_passed:
         print("WARNING: Some algorithms failed verification. Results may be incorrect.")
     
     # Make a deep copy of the original algorithms to prevent any potential modifications
@@ -578,7 +489,7 @@ def main():
         benchmark_results, sizes = benchmark.benchmark_for_complexity(
             all_algorithms, 
             None, 
-            TEST_DATA_TYPE, 
+            DATA_TYPE, 
             TEST_RANGE
         )
         valid_results = {name: points for name, points in benchmark_results.items() if len(points) >= 1}

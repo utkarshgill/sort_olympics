@@ -14,68 +14,14 @@ import multiprocessing as mp
 from concurrent.futures import ProcessPoolExecutor, as_completed
 import argparse
 
-# default settings
-TIMEOUT = int(os.environ.get('TIMEOUT', 5))
-MAX_SIZE = int(os.environ.get('MAX_SIZE', 20000))
-SIZE_INCREMENT = int(os.environ.get('SIZE_INC', 5000))
-DATA_TYPE = os.environ.get('DATA_TYPE', 'random')
-TEST_RANGE = int(os.environ.get('TEST_RANGE', 1000))
+# import shared utilities
+from utils import (
+    TIMEOUT, MAX_SIZE, SIZE_INCREMENT, DATA_TYPE, TEST_RANGE,
+    generate_test_data, discover_sorting_algorithms, verify_sorting, benchmark_single
+)
+
+# global settings with environment variable overrides
 NUM_PROCESSES = max(1, mp.cpu_count() - 1)
-
-def generate_test_data(size, dt, rmax=1000):
-    if dt == 'sorted':
-        return list(range(size))
-    if dt == 'reversed':
-        return list(range(size, 0, -1))
-    if dt == 'nearly_sorted':
-        data = list(range(size))
-        for _ in range(max(1, int(size * 0.05))):
-            i, j = random.sample(range(size), 2)
-            data[i], data[j] = data[j], data[i]
-        return data
-    return [random.randint(0, rmax) for _ in range(size)]
-
-def benchmark_single(func_name, func, data, max_time):
-    def timeout_handler(signum, frame):
-        raise TimeoutError("timeout")
-    signal.signal(signal.SIGALRM, timeout_handler)
-    signal.alarm(max_time)
-    try:
-        tracemalloc.start()
-        data_copy = data.copy()  # avoid side effects
-        start = time.time()
-        result = func(data_copy)
-        elapsed = time.time() - start
-        _, peak = tracemalloc.get_traced_memory()
-        tracemalloc.stop()
-        signal.alarm(0)
-        expected = sorted(data)
-        # if result is None, the algorithm likely modified data_copy in-place
-        if result is None:
-            result = data_copy
-        is_correct = result == expected
-        return {
-            "name": func_name, 
-            "time": elapsed, 
-            "memory": peak/1024,
-            "success": True,
-            "error": None if is_correct else "incorrect sort result"
-        }
-    except TimeoutError:
-        if tracemalloc.is_tracing():
-            tracemalloc.stop()
-        signal.alarm(0)
-        return {"name": func_name, "time": float('inf'), "memory": 0, "success": False, "error": "Timeout"}
-    except RecursionError:
-        if tracemalloc.is_tracing():
-            tracemalloc.stop()
-        signal.alarm(0)
-        return {"name": func_name, "time": float('inf'), "memory": 0, "success": False, "error": "Recursion depth exceeded"}
-    except Exception as e:
-        if tracemalloc.is_tracing():
-            tracemalloc.stop()
-        signal.alarm(0)
-        return {"name": func_name, "time": float('inf'), "memory": 0, "success": False, "error": f"{type(e).__name__}: {str(e)}"}
 
 def worker_init():
     signal.signal(signal.SIGALRM, signal.SIG_IGN)
@@ -249,59 +195,12 @@ def generate_algorithm_summary(results, all_algos, sizes):
     print(f"\nAlgorithms completing all sizes: {perfect_count}/{len(all_algos)}")
     return success_by_size
 
-def discover_algorithms(module_name=None):
-    try:
-        module = __import__(module_name) if module_name else __import__("algorithms")
-    except ImportError:
-        print(f"Error: could not import {module_name or 'algorithms'} module.")
-        return []
-    sorting_algos = []
-    for name, func in inspect.getmembers(module, inspect.isfunction):
-        display_name = ' '.join(word.capitalize() for word in name.split('_'))
-        sorting_algos.append((display_name, func, "unknown"))
-    print(f"[{len(sorting_algos)}] algorithms discovered")
-    return sorting_algos
-
-def verify_sorting(algos):
-    print("\nVerifying algorithms...\n")
-    valid_algos = []
-    total = len(algos)
-    current = 0
-    test_cases = [
-        [5, 4, 3, 2, 1],
-        [3, 1, 4, 1, 5, 9, 2, 6],
-        [random.randint(0, 100) for _ in range(50)]
-    ]
-    print(f"[{current}/{total}] Starting verification...", end="", flush=True)
-    for name, func, algo_type in algos:
-        print(f"\r[{current}/{total}] {name}", end="", flush=True)
-        valid = True
-        try:
-            for case in test_cases:
-                case_copy = case.copy()
-                result = func(case_copy)
-                if not result or result != sorted(case):
-                    print(f"\r{name} ✗ incorrect result" + " " * 20)
-                    valid = False
-                    break
-        except Exception as e:
-            print(f"\r{name} ✗ {type(e).__name__}: {str(e)}" + " " * 20)
-            valid = False
-        if valid:
-            valid_algos.append((name, func, algo_type))
-            print(f"\r{name} ✓" + " " * 20)
-        current += 1
-        if current < total:
-            print(f"[{current}/{total}]", end="", flush=True)
-    print(f"\nVerified {len(valid_algos)}/{total} algorithms" + " " * 20)
-    return valid_algos
-
 def run_benchmark(module_name=None, sizes=None, output_file=None, size_increment=None):
-    algorithms = discover_algorithms(module_name)
+    algorithms = discover_sorting_algorithms(module_name or "algorithms")
     if not algorithms:
         print("no algorithms found. exiting.")
         return
-    verified_algorithms = verify_sorting(algorithms)
+    all_passed, verified_algorithms = verify_sorting(algorithms)
     if not verified_algorithms:
         print("no algorithms passed verification. exiting.")
         return
@@ -326,9 +225,10 @@ if __name__ == "__main__":
     parser.add_argument('--max-size', type=int, help=f'Maximum input size to benchmark (default: {MAX_SIZE})')
     parser.add_argument('--size-increment', type=int, help=f'Increment between sizes (default: {SIZE_INCREMENT})')
     args = parser.parse_args()
-    if args.timeout:
-        TIMEOUT = args.timeout
-    if args.max_size:
-        MAX_SIZE = args.max_size
-    size_increment = args.size_increment
+    
+    # Override global settings with command-line arguments if provided
+    timeout = args.timeout or TIMEOUT
+    max_size = args.max_size or MAX_SIZE
+    size_increment = args.size_increment or SIZE_INCREMENT
+    
     run_benchmark(args.module, args.sizes, args.output, size_increment) 

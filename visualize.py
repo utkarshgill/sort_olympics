@@ -4,16 +4,7 @@ import random
 import threading
 import time
 import os  # added for env variables
-from algorithms import (
-    bubble_sort, selection_sort, insertion_sort, merge_sort, quick_sort, heap_sort, shell_sort,
-    tim_sort, intro_sort, library_sort, block_sort, smooth_sort, tree_sort, tournament_sort,
-    patience_sort, cube_sort, comb_sort, cocktail_sort, gnome_sort, odd_even_sort, pancake_sort,
-    strand_sort, exchange_sort, cycle_sort, recombinant_sort, inplace_merge_sort, counting_sort,
-    bucket_sort_uniform, bucket_sort_integer, radix_sort_lsd, radix_sort_msd, pigeonhole_sort,
-    spreadsort, burstsort, flashsort, postman_sort, msd_radix_sort_inplace, bead_sort,
-    merge_insertion_sort, i_cant_believe_it_can_sort, bogosort, spaghetti_sort, sorting_network,
-    bitonic_sort, stooge_sort, slowsort, franceschini_mergesort, thorup_sort
-)
+from utils import discover_sorting_algorithms, generate_test_data
 
 # global settings - increased window size for 48 sorts grid + leaderboard panel
 WIDTH = 1600
@@ -33,58 +24,6 @@ FONT_SIZE = 20
 # extra layout for simultaneous mode: reserve a side panel for the leaderboard.
 LEADERBOARD_WIDTH = 300                # width for the leaderboard panel
 GRID_WIDTH = WIDTH - LEADERBOARD_WIDTH   # remaining width for the grid
-
-# list of all 48 algorithms (name, function)
-all_algos = [
-    ("bubble sort", bubble_sort),
-    ("selection sort", selection_sort),
-    ("insertion sort", insertion_sort),
-    ("merge sort", merge_sort),
-    ("quick sort", quick_sort),
-    ("heap sort", heap_sort),
-    ("shell sort", shell_sort),
-    ("tim sort", tim_sort),
-    ("intro sort", intro_sort),
-    ("library sort", library_sort),
-    ("block sort", block_sort),
-    ("smooth sort", smooth_sort),
-    ("tree sort", tree_sort),
-    ("tournament sort", tournament_sort),
-    ("patience sort", patience_sort),
-    ("cube sort", cube_sort),
-    ("comb sort", comb_sort),
-    ("cocktail sort", cocktail_sort),
-    ("gnome sort", gnome_sort),
-    ("odd-even sort", odd_even_sort),
-    ("pancake sort", pancake_sort),
-    ("strand sort", strand_sort),
-    ("exchange sort", exchange_sort),
-    ("cycle sort", cycle_sort),
-    ("recombinant sort", recombinant_sort),
-    ("inplace merge sort", inplace_merge_sort),
-    ("counting sort", counting_sort),
-    ("bucket sort uniform", bucket_sort_uniform),
-    ("bucket sort integer", bucket_sort_integer),
-    ("radix sort lsd", radix_sort_lsd),
-    ("radix sort msd", radix_sort_msd),
-    ("pigeonhole sort", pigeonhole_sort),
-    ("spreadsort", spreadsort),
-    ("burstsort", burstsort),
-    ("flashsort", flashsort),
-    ("postman sort", postman_sort),
-    ("msd radix sort inplace", msd_radix_sort_inplace),
-    ("bead sort", bead_sort),
-    ("merge insertion sort", merge_insertion_sort),
-    ("i cant believe", i_cant_believe_it_can_sort),
-    ("bogosort", bogosort),
-    ("spaghetti sort", spaghetti_sort),
-    ("sorting network", sorting_network),
-    ("bitonic sort", bitonic_sort),
-    ("stooge sort", stooge_sort),
-    ("slowsort", slowsort),
-    ("franceschini mergesort", franceschini_mergesort),
-    ("thorup sort", thorup_sort)
-]
 
 # -------------------------------
 # Custom Exception for Abort
@@ -149,9 +88,7 @@ def draw_text(text):
     pygame.display.flip()
 
 def reset_array():
-    arr = list(range(1, SIZE + 1))
-    random.shuffle(arr)
-    return arr
+    return generate_test_data(SIZE, 'random', SIZE)
 
 def draw_array_in_cell(arr, cell_rect, algo_name):
     # Draw the array in a grid cell (for simultaneous mode) with label.
@@ -187,12 +124,15 @@ def algo_wrapper(name, func, sim_list, leaderboard, lock):
 
 def run_simultaneous_all():
     """
-    Run all 48 algorithms concurrently in an 8x6 grid (grid area: GRID_WIDTH x HEIGHT)
-    and display a leaderboard (in the right panel) sorted by fastest.
+    Run all algorithms concurrently in a grid and display a leaderboard.
     Press the spacebar at any time to return to the main menu.
     (Press Esc to quit at any time)
     """
     initial = reset_array()
+    
+    # get all algorithms
+    all_algos = [(name, func) for name, func, _ in discover_sorting_algorithms()]
+    
     sim_lists = []
     threads = []
     leaderboard = []  # list of tuples: (name, duration)
@@ -207,8 +147,11 @@ def run_simultaneous_all():
         t.start()
         threads.append(t)
 
-    cols = 8
-    rows = 6
+    # calculate grid dimensions based on number of algorithms
+    total_algos = len(all_algos)
+    cols = min(8, total_algos)
+    rows = (total_algos + cols - 1) // cols  # ceiling division
+    
     cell_width = GRID_WIDTH // cols
     cell_height = HEIGHT // rows
     clock = pygame.time.Clock()
@@ -293,14 +236,20 @@ def run_single_mode(algo_name, algo_func):
 
 def main_menu():
     """
-    Display the main menu with a header and a grid of all 48 algorithms arranged in 4 columns.
+    Display the main menu with a header and a grid of algorithms.
     The header shows that pressing "0" will run "All" mode.
     (Press Esc to quit at any time)
     The user may click on a cell to choose an individual algorithm.
     """
+    # get all algorithms
+    all_algos = [(name, func) for name, func, _ in discover_sorting_algorithms()]
+    
     selecting = True
-    cols = 4
-    rows = 12  # 48 / 4 = 12 rows
+    # calculate grid dimensions based on number of algorithms
+    total_algos = len(all_algos)
+    cols = min(4, total_algos)
+    rows = (total_algos + cols - 1) // cols  # ceiling division
+    
     cell_width = WIDTH // cols
     cell_height = (HEIGHT - 40) // rows  # leave header area
     header = "Sorting Visualizer - [0: All] | Click a cell to run individual algo | [q] or Esc to Quit"
@@ -361,13 +310,11 @@ def main(arg=None):
     if arg == "all":
         run_simultaneous_all()
     elif arg:
-        chosen = None
-        for name, func in all_algos:
-            # compare against the function's __name__
-            if func.__name__.lower() == arg:
-                chosen = (name, func)
-                break
-        if chosen is not None:
+        # get all algorithms
+        all_algos_dict = {func.__name__.lower(): (name, func) for name, func, _ in discover_sorting_algorithms()}
+        
+        if arg in all_algos_dict:
+            chosen = all_algos_dict[arg]
             run_single_mode(chosen[0], chosen[1])
         else:
             print("no matching algorithm found for:", arg)
