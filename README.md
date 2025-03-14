@@ -4,4 +4,4 @@ may the best algo  win.
 ```python
 SIZE=1000 python run.py
 ```
-<img width="1485" alt="Screenshot 2025-03-14 at 7 48 48 PM" src="https://github.com/user-attachments/assets/0846b6a0-ef61-4032-a0d6-3ef6ee43ff59" />
+<img width="1488" alt="Screenshot 2025-03-14 at 8 35 39 PM" src="https://github.com/user-attachments/assets/1739ac4e-6a28-443f-8905-91208949e4ad" />
