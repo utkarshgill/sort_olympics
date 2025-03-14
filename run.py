@@ -587,7 +587,7 @@ def main():
                 print(f"{algo}: {points}")
         else:
             print("Not enough data points to display benchmark results.")
-    elif VIZ:
+    if VIZ:
         print("\n" + "=" * 50)
         print("VISUALISE COMPLEXITY")
         print("=" * 50)
