@@ -64,13 +64,6 @@ yet another sorting toolkit. because the world needed more sorting analysis.
 - [x] thorup_sort
 
 ## tools
-### benchmark.py
-measures how painfully slow your sorting algorithm really is.
-```bash
-TIMEOUT=5 python benchmark.py
-```
-<img width="1488" alt="tournament example" src="https://github.com/user-attachments/assets/1739ac4e-6a28-443f-8905-91208949e4ad" />
-
 
 ### visualize.py
 watch sorting happen in real-time. riveting entertainment.
@@ -81,6 +74,13 @@ DELAY=10 SIZE=100 python visualize.py all
 python visualize.py bubble_sort
 ```
 ![Untitled (4)](https://github.com/user-attachments/assets/1bf2fd62-11cd-4d66-b08a-1aa0bbd62d12)
+
+### benchmark.py
+measures how painfully slow your sorting algorithm really is.
+```bash
+TIMEOUT=5 python benchmark.py
+```
+<img width="1488" alt="tournament example" src="https://github.com/user-attachments/assets/1739ac4e-6a28-443f-8905-91208949e4ad" />
 
 ### run.py
 pits algorithms against each other. may the least awful one win.
