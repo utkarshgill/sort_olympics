@@ -5,7 +5,7 @@ yet another sorting toolkit. because the world needed more sorting analysis.
 
 #### benchmark.py
 measures how painfully slow your sorting algorithm really is.
-```bash
+```zsh
 TIMEOUT=5 python benchmark.py
 ```
 <img width="1488" alt="tournament example" src="https://github.com/user-attachments/assets/1739ac4e-6a28-443f-8905-91208949e4ad" />
